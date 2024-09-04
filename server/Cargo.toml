@@ -1,0 +1,16 @@
+[package]
+name = "server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = { version = "0.7", features = ["tracing"] }
+axum-extra = { version = "0.9", features = ["typed-routing"] }
+clap = { version = "4", features = ["derive"] }
+tokio = { version = "1", features = [ "full", "tracing"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+[dev-dependencies]
+ureq = "2"
+backoff = { version = "0.4", features = ["tokio"] }
