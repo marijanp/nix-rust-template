@@ -25,7 +25,12 @@
   };
 
   outputs =
-    inputs@{ flake-parts, treefmt-nix, ... }:
+    inputs@{
+      self,
+      flake-parts,
+      treefmt-nix,
+      ...
+    }:
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [
         "x86_64-linux"
@@ -101,12 +106,10 @@
             );
 
             default = self'.packages.server;
-
-            server-docker-image = pkgs.callPackage ./docker-image.nix { inherit (self'.packages) server; };
           };
 
           checks = {
-            inherit (self'.packages) server-docs server server-docker-image;
+            inherit (self'.packages) server-docs server;
 
             lint = craneLib.cargoClippy (
               commonAttrs
@@ -130,6 +133,16 @@
             programs.rustfmt.enable = true;
             programs.rustfmt.package = craneLib.rustfmt;
             settings.formatter = { };
+          };
+        };
+      flake =
+        let
+          system = "x86_64-linux";
+          pkgs = inputs.nixpkgs.legacyPackages.${system};
+        in
+        {
+          packages.${system}.server-docker-image = pkgs.callPackage ./docker-image.nix {
+            inherit (self.packages.${system}) server;
           };
         };
     };
