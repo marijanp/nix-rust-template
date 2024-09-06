@@ -1,0 +1,12 @@
+<table>
+  <tr>
+    <th>Id</th>
+    <th>Name</th>
+  </tr>
+  {% for item in items %}
+  <tr>
+    <td>{{ item.id }}</td>
+    <td>{{ item.name }}</td>
+  </tr>
+  {% endfor %}
+</table>

@@ -30,7 +30,8 @@ pub async fn test_server_listens() {
             .unwrap()
             .into_string()
             .unwrap();
-        assert_eq!(response, "Hello World!")
+        assert!(response.contains("<table>"));
+        assert!(response.contains("test"))
     })
     .await
     .unwrap();
