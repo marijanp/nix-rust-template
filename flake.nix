@@ -74,6 +74,7 @@
               ]
               ++ lib.optionals stdenv.isDarwin [
                 libiconv
+                darwin.apple_sdk.frameworks.Security
               ];
 
             # the coverage report will run the tests
