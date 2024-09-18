@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+anyhow = "1"
 askama = "0.12"
 axum = { version = "0.7", features = ["tracing"] }
 axum-extra = { version = "0.9", features = ["typed-routing"] }

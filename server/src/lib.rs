@@ -31,7 +31,7 @@ pub async fn run(
         listen_address,
         metrics_listen_address,
     }: CliArgs,
-) -> std::io::Result<()> {
+) -> anyhow::Result<()> {
     init_tracing();
 
     let app = app();
@@ -39,7 +39,7 @@ pub async fn run(
     tracing::info!("Server is listening on '{listen_address}'");
 
     match metrics_listen_address {
-        None => axum::serve(tcp_listener, app).await,
+        None => axum::serve(tcp_listener, app).await.map_err(Into::into),
         Some(metrics_listen_address) => {
             let metrics_app = metrics_app();
             let metrics_tcp_listener = tokio::net::TcpListener::bind(metrics_listen_address)
@@ -56,7 +56,7 @@ pub async fn run(
             .map(|_| ())
             .map_err(|err| {
                 tracing::error!("{err}");
-                err
+                err.into()
             })
         }
     }
