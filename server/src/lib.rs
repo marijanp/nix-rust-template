@@ -1,8 +1,10 @@
+pub mod app_state;
 pub mod cli;
 pub mod db;
 pub mod item;
 pub mod routes;
 
+use crate::app_state::{AppConfig, AppState};
 use crate::cli::CliArgs;
 
 use axum::{
@@ -13,7 +15,9 @@ use axum::{
 };
 use axum_extra::routing::RouterExt;
 use metrics_exporter_prometheus::{Matcher, PrometheusBuilder, PrometheusHandle};
+use sqlx::SqlitePool;
 use std::future;
+use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::time::Instant;
 
@@ -30,11 +34,18 @@ pub async fn run(
     CliArgs {
         listen_address,
         metrics_listen_address,
+        database_url,
     }: CliArgs,
 ) -> anyhow::Result<()> {
     init_tracing();
 
-    let app = app();
+    let app_state = Arc::new(AppConfig {
+        db_pool: SqlitePool::connect(&database_url)
+            .await
+            .map_err(Into::<anyhow::Error>::into)?,
+    });
+    let app = app(app_state);
+
     let tcp_listener = TcpListener::bind(listen_address).await?;
     tracing::info!("Server is listening on '{listen_address}'");
 
@@ -62,10 +73,11 @@ pub async fn run(
     }
 }
 
-pub fn app() -> Router {
+pub fn app(app_state: AppState) -> Router {
     Router::new()
         .typed_get(routes::get_items_handler)
         .route_layer(middleware::from_fn(track_metrics))
+        .with_state(app_state)
 }
 
 pub fn metrics_app() -> Router {
