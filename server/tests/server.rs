@@ -21,13 +21,13 @@ async fn wait_for_port(address: &SocketAddr) -> Result<(), io::Error> {
 }
 
 pub struct TestServer {
-    task_handle: tokio::task::JoinHandle<io::Result<()>>,
+    task_handle: tokio::task::JoinHandle<anyhow::Result<()>>,
     pub server_url: String,
     pub metrics_server_url: Option<String>,
 }
 
 impl TestServer {
-    pub async fn run(with_metrics_server: bool) -> io::Result<TestServer> {
+    pub async fn run(with_metrics_server: bool) -> anyhow::Result<TestServer> {
         let listen_address = TcpListener::bind("0.0.0.0:0")
             .unwrap()
             .local_addr()
