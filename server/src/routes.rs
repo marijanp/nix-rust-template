@@ -1,5 +1,6 @@
 use askama::Template;
 use axum::response::Html;
+use axum::extract::State;
 use axum_extra::routing::TypedPath;
 use lazy_static::lazy_static;
 use std::sync::Mutex;
@@ -14,14 +15,15 @@ lazy_static! {
         price: 12345
     }]);
 }
+use crate::app_state::AppState;
 
 #[derive(TypedPath, Debug, Clone, Copy)]
 #[typed_path("/api/v1/items")]
 pub struct GetItemsPath;
 
 #[instrument(level = "trace", ret)]
-pub async fn get_items_handler(_: GetItemsPath) -> Html<String> {
     let items = ITEMS.lock().unwrap();
+pub async fn get_items_handler(_: GetItemsPath, state: State<AppState>) -> Html<String> {
     let template = ItemsTemplate { items: &items };
     Html(template.render().unwrap())
 }

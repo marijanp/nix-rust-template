@@ -20,8 +20,11 @@ async fn wait_for_port(address: &SocketAddr) -> Result<(), io::Error> {
     .await
 }
 
+static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!();
+
 pub struct TestServer {
     task_handle: tokio::task::JoinHandle<anyhow::Result<()>>,
+    _database: tempfile::NamedTempFile,
     pub server_url: String,
     pub metrics_server_url: Option<String>,
 }
@@ -38,10 +41,19 @@ impl TestServer {
                 .local_addr()
                 .unwrap(),
         );
+
+        let database = tempfile::NamedTempFile::new()?;
+        let pool = sqlx::SqlitePool::connect(database.path().to_str().unwrap())
+            .await
+            .unwrap();
+        MIGRATOR.run(&pool).await.unwrap();
+
+        let database_path = database.path().to_str().unwrap().to_string();
         let task_handle = tokio::spawn(async move {
             server::run(CliArgs {
                 listen_address,
                 metrics_listen_address,
+                database_url: format!("sqlite://{database_path}"),
             })
             .await
         });
@@ -58,6 +70,7 @@ impl TestServer {
 
         Ok(TestServer {
             task_handle,
+            _database: database,
             server_url: format!("http://{}", listen_address),
             metrics_server_url,
         })

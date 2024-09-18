@@ -8,4 +8,6 @@ pub struct CliArgs {
     pub listen_address: SocketAddr,
     #[arg(short, long)]
     pub metrics_listen_address: Option<SocketAddr>,
+    #[arg(short, long)]
+    pub database_url: String,
 }
