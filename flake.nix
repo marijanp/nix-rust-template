@@ -84,6 +84,8 @@
         {
           devShells.default = pkgs.mkShell {
             inputsFrom = [ self'.packages.default ];
+            packages = [ pkgs.sqlx-cli ];
+            DATABASE_URL = "sqlite:items.db";
           };
 
           packages = {
