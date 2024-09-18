@@ -1,4 +1,7 @@
-use server::{cli::CliArgs, routes::GetItemsPath};
+use server::{
+    cli::CliArgs,
+    routes::{GetItemsPath, NewItemPath},
+};
 
 use backoff::{future::retry, ExponentialBackoff};
 use std::net::{SocketAddr, TcpListener};
@@ -88,6 +91,9 @@ pub async fn test_server_listens() {
     let server = TestServer::run(false).await.unwrap();
     tokio::task::spawn_blocking(move || {
         let server_url = &server.server_url;
+        ureq::post(&format!("{server_url}{NewItemPath}"))
+            .call()
+            .unwrap();
         let response = ureq::get(&format!("{server_url}{GetItemsPath}"))
             .call()
             .unwrap()
