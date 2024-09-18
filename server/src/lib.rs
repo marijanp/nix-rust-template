@@ -76,6 +76,7 @@ pub async fn run(
 pub fn app(app_state: AppState) -> Router {
     Router::new()
         .typed_get(routes::get_items_handler)
+        .typed_post(routes::new_item_handler)
         .route_layer(middleware::from_fn(track_metrics))
         .with_state(app_state)
 }
