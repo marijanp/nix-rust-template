@@ -9,6 +9,8 @@ let
     optionals
     ;
   cfg = config.services.server;
+  stateDirectory = "/var/lib/server";
+  databasePath = "/var/lib/server/database.db";
 in
 {
   options.services.server = {
@@ -34,6 +36,15 @@ in
       example = 8080;
       description = ''
         Port to listen on.
+      '';
+    };
+
+    database_url = mkOption {
+      type = types.str;
+      default = "sqlite://${databasePath}";
+      example = "sqlite://${databasePath}";
+      description = ''
+        SQlite database to connect to.
       '';
     };
 
@@ -75,6 +86,8 @@ in
           [
             "--listen-address"
             "${cfg.address}:${toString cfg.port}"
+            "--database-url"
+            "sqlite://${databasePath}"
           ]
           ++ optionals cfg.metrics.enable [
             "--metrics-listen-address"
@@ -92,9 +105,11 @@ in
           RUST_LOG = cfg.logLevel;
         };
         serviceConfig = {
+          ExecStartPre = "${lib.getExe cfg.package.passthru.run-migrations} ${cfg.package.passthru.migrations} ${databasePath}";
           ExecStart = "${lib.getExe cfg.package} ${args}";
           Restart = "always";
           DynamicUser = true;
+          StateDirectory = baseNameOf stateDirectory;
         };
       };
   };
