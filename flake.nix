@@ -94,6 +94,7 @@
               runtimeInputs = [
                 pkgs.tinyproxy
                 pkgs.simple-http-server
+                self'.packages.run-migrations
               ];
               text =
                 let
@@ -109,9 +110,12 @@
                   };
                 in
                 ''
+                  database_file=$(mktemp database.XXXX)
+                  run-migrations server/migrations "$database_file"
+
                   simple-http-server --index --port 8001 frontend &
                   PID_FRONTEND=$!
-                  cargo run -- --listen-address 0.0.0.0:8002 &
+                  cargo run -- --listen-address 0.0.0.0:8002 --database-url "sqlite://$database_file" &
                   PID_BACKEND=$!
                   tinyproxy -d -c ${proxyConfig} &
                   PID_PROXY=$!
@@ -125,7 +129,20 @@
                   trap cleanup SIGINT
 
                   wait $PID_FRONTEND $PID_BACKEND $PID_PROXY
+                  rm -rf "$database_file"
                 '';
+            };
+
+            run-migrations = pkgs.writeShellApplication {
+              name = "run-migrations";
+              runtimeInputs = [ pkgs.sqlite ];
+              text = ''
+                >&2 echo "Applying migrations"
+                for migration_file in "$1"/*.sql; do
+                  >&2 echo "Applying migration: $migration_file"
+                  sqlite3 "$2" < "$migration_file"
+                done
+              '';
             };
 
             server-deps = craneLib.buildDepsOnly commonAttrs;
@@ -142,6 +159,10 @@
               // {
                 cargoArtifacts = self'.packages.server-deps;
                 meta.mainProgram = "server";
+                passthru = {
+                  migrations = ./server/migrations;
+                  inherit (self'.packages) run-migrations;
+                };
               }
             );
 
