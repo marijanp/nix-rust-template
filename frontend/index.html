@@ -8,7 +8,8 @@
     <title>Demo</title>
   </head>
   <body>
-    <div id="app" hx-get="/api/v1/items" hx-trigger="load">
+    <button hx-post="/api/v1/items/new" hx-swap="none">New</button>
+    <div hx-get="/api/v1/items" hx-trigger="load, newItem from:body">
     </div>
     <noscript>
       <p lang="en">
