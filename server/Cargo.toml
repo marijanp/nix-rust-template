@@ -9,7 +9,6 @@ askama = "0.12"
 axum = { version = "0.7", features = ["tracing"] }
 axum-extra = { version = "0.9", features = ["typed-routing"] }
 clap = { version = "4", features = ["derive"] }
-lazy_static = "1.5.0"
 metrics = "0.23"
 metrics-exporter-prometheus = "0.15"
 sqlx = { version = "0.8", features = [ "runtime-tokio-native-tls", "sqlite", "uuid"] }
