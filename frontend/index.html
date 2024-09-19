@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/style.css">
+    <script src="https://unpkg.com/htmx.org@2.0.2" integrity="sha384-Y7hw+L/jvKeWIRRkqWYfPcvVxHzVzn5REgzbawhxAuQGwX1XWe70vji+VSeHOThJ" crossorigin="anonymous"></script>
+    <title>Demo</title>
+  </head>
+  <body>
+    <div id="app" hx-get="/api/v1/items" hx-trigger="load">
+    </div>
+    <noscript>
+      <p lang="en">
+        This website requires JavaScript. Here are the
+        <a href="https://www.enable-javascript.com/en/">instructions how to enable JavaScript in your web browser</a>.
+        Or perhaps you need to make an exception in your script blocker.
+      </p>
+    </noscript>
+  </body>
+</html>
