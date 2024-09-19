@@ -4,11 +4,13 @@ let
     types
     mkOption
     mkIf
-    mkMerge
     mkEnableOption
     escapeShellArgs
+    optionals
     ;
   cfg = config.services.server;
+  stateDirectory = "/var/lib/server";
+  databasePath = "/var/lib/server/database.db";
 in
 {
   options.services.server = {
@@ -37,6 +39,36 @@ in
       '';
     };
 
+    database_url = mkOption {
+      type = types.str;
+      default = "sqlite://${databasePath}";
+      example = "sqlite://${databasePath}";
+      description = ''
+        SQlite database to connect to.
+      '';
+    };
+
+    metrics = {
+      enable = lib.mkEnableOption "Prometheus metrics server";
+
+      address = mkOption {
+        type = types.str;
+        default = "0.0.0.0";
+        example = "0.0.0.0";
+        description = ''
+          Listen address of the metrics server.
+        '';
+      };
+
+      port = mkOption {
+        type = types.port;
+        default = 8081;
+        description = ''
+          Listen port of the metrics service.
+        '';
+      };
+    };
+
     logLevel = mkOption {
       type = types.str;
       default = "info";
@@ -50,10 +82,18 @@ in
 
     systemd.services.server =
       let
-        args = escapeShellArgs [
-          "--listen-address"
-          "${cfg.address}:${toString cfg.port}"
-        ];
+        args = escapeShellArgs (
+          [
+            "--listen-address"
+            "${cfg.address}:${toString cfg.port}"
+            "--database-url"
+            "sqlite://${databasePath}"
+          ]
+          ++ optionals cfg.metrics.enable [
+            "--metrics-listen-address"
+            "${cfg.metrics.address}:${toString cfg.metrics.port}"
+          ]
+        );
       in
       {
         description = "server";
@@ -65,9 +105,11 @@ in
           RUST_LOG = cfg.logLevel;
         };
         serviceConfig = {
+          ExecStartPre = "${lib.getExe cfg.package.passthru.run-migrations} ${cfg.package.passthru.migrations} ${databasePath}";
           ExecStart = "${lib.getExe cfg.package} ${args}";
           Restart = "always";
           DynamicUser = true;
+          StateDirectory = baseNameOf stateDirectory;
         };
       };
   };

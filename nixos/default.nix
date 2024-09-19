@@ -12,6 +12,7 @@
               self.nixosModules.server
             ];
             services.server.enable = true;
+            services.server.metrics.enable = true;
           };
           verifyServices = [ "server.service" ];
         };

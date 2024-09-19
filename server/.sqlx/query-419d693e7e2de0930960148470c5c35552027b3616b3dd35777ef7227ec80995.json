@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "insert into items (id, name, price) values ($1, $2, $3) returning *",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "price",
+        "ordinal": 2,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "419d693e7e2de0930960148470c5c35552027b3616b3dd35777ef7227ec80995"
+}
