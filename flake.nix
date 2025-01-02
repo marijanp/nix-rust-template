@@ -74,6 +74,7 @@
               ]
               ++ lib.optionals stdenv.isDarwin [
                 libiconv
+                darwin.apple_sdk.frameworks.Security
               ];
 
             # the coverage report will run the tests
@@ -83,9 +84,67 @@
         {
           devShells.default = pkgs.mkShell {
             inputsFrom = [ self'.packages.default ];
+            packages = [ pkgs.sqlx-cli ];
+            DATABASE_URL = "sqlite:items.db";
           };
 
           packages = {
+            run-stack = pkgs.writeShellApplication {
+              name = "run-stack";
+              runtimeInputs = [
+                pkgs.tinyproxy
+                pkgs.simple-http-server
+                self'.packages.run-migrations
+              ];
+              text =
+                let
+                  proxyConfig = pkgs.writeTextFile {
+                    name = "proxy.conf";
+                    text = ''
+                      ReversePath "/"	"http://0.0.0.0:8001/"
+                      ReversePath "/api/"	"http://0.0.0.0:8002/api/"
+                      ReverseOnly Yes
+                      Port 8000
+                      ReverseBaseURL "http://0.0.0.0:8000/"
+                    '';
+                  };
+                in
+                ''
+                  database_file=$(mktemp database.XXXX)
+                  run-migrations server/migrations "$database_file"
+
+                  simple-http-server --index --port 8001 frontend &
+                  PID_FRONTEND=$!
+                  cargo run -- --listen-address 0.0.0.0:8002 --database-url "sqlite://$database_file" &
+                  PID_BACKEND=$!
+                  tinyproxy -d -c ${proxyConfig} &
+                  PID_PROXY=$!
+
+                  cleanup() {
+                    kill $PID_FRONTEND $PID_BACKEND $PID_PROXY
+                    wait $PID_FRONTEND $PID_BACKEND $PID_PROXY
+                    exit 0
+                  }
+
+                  trap cleanup SIGINT
+
+                  wait $PID_FRONTEND $PID_BACKEND $PID_PROXY
+                  rm -rf "$database_file"
+                '';
+            };
+
+            run-migrations = pkgs.writeShellApplication {
+              name = "run-migrations";
+              runtimeInputs = [ pkgs.sqlite ];
+              text = ''
+                >&2 echo "Applying migrations"
+                for migration_file in "$1"/*.sql; do
+                  >&2 echo "Applying migration: $migration_file"
+                  sqlite3 "$2" < "$migration_file"
+                done
+              '';
+            };
+
             server-deps = craneLib.buildDepsOnly commonAttrs;
 
             server-docs = craneLib.cargoDoc (
@@ -100,6 +159,10 @@
               // {
                 cargoArtifacts = self'.packages.server-deps;
                 meta.mainProgram = "server";
+                passthru = {
+                  migrations = ./server/migrations;
+                  inherit (self'.packages) run-migrations;
+                };
               }
             );
 
