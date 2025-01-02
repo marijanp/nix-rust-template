@@ -4,9 +4,9 @@ let
     types
     mkOption
     mkIf
-    mkMerge
     mkEnableOption
     escapeShellArgs
+    optionals
     ;
   cfg = config.services.server;
 in
@@ -37,6 +37,27 @@ in
       '';
     };
 
+    metrics = {
+      enable = lib.mkEnableOption "Prometheus metrics server";
+
+      address = mkOption {
+        type = types.str;
+        default = "0.0.0.0";
+        example = "0.0.0.0";
+        description = ''
+          Listen address of the metrics server.
+        '';
+      };
+
+      port = mkOption {
+        type = types.port;
+        default = 8081;
+        description = ''
+          Listen port of the metrics service.
+        '';
+      };
+    };
+
     logLevel = mkOption {
       type = types.str;
       default = "info";
@@ -50,10 +71,16 @@ in
 
     systemd.services.server =
       let
-        args = escapeShellArgs [
-          "--listen-address"
-          "${cfg.address}:${toString cfg.port}"
-        ];
+        args = escapeShellArgs (
+          [
+            "--listen-address"
+            "${cfg.address}:${toString cfg.port}"
+          ]
+          ++ optionals cfg.metrics.enable [
+            "--metrics-listen-address"
+            "${cfg.metrics.address}:${toString cfg.metrics.port}"
+          ]
+        );
       in
       {
         description = "server";

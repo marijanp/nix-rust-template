@@ -74,6 +74,7 @@
               ]
               ++ lib.optionals stdenv.isDarwin [
                 libiconv
+                darwin.apple_sdk.frameworks.Security
               ];
 
             # the coverage report will run the tests
@@ -86,6 +87,45 @@
           };
 
           packages = {
+            run-stack = pkgs.writeShellApplication {
+              name = "run-stack";
+              runtimeInputs = [
+                pkgs.tinyproxy
+                pkgs.simple-http-server
+              ];
+              text =
+                let
+                  proxyConfig = pkgs.writeTextFile {
+                    name = "proxy.conf";
+                    text = ''
+                      ReversePath "/"	"http://0.0.0.0:8001/"
+                      ReversePath "/api/"	"http://0.0.0.0:8002/api/"
+                      ReverseOnly Yes
+                      Port 8000
+                      ReverseBaseURL "http://0.0.0.0:8000/"
+                    '';
+                  };
+                in
+                ''
+                  simple-http-server --index --port 8001 frontend &
+                  PID_FRONTEND=$!
+                  cargo run -- --listen-address 0.0.0.0:8002 &
+                  PID_BACKEND=$!
+                  tinyproxy -d -c ${proxyConfig} &
+                  PID_PROXY=$!
+
+                  cleanup() {
+                    kill $PID_FRONTEND $PID_BACKEND $PID_PROXY
+                    wait $PID_FRONTEND $PID_BACKEND $PID_PROXY
+                    exit 0
+                  }
+
+                  trap cleanup SIGINT
+
+                  wait $PID_FRONTEND $PID_BACKEND $PID_PROXY
+                '';
+            };
+
             server-deps = craneLib.buildDepsOnly commonAttrs;
 
             server-docs = craneLib.cargoDoc (
