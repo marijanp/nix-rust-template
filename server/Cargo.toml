@@ -5,16 +5,22 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1"
-askama = "0.12"
+askama = "0.14"
 axum = { version = "0.8", features = ["tracing"] }
-axum-extra = { version = "0.10", features = ["typed-routing"] }
+axum-extra = { version = "0.10", features = ["typed-routing", "cookie"] }
 clap = { version = "4", features = ["derive"] }
+chrono = "0.4"
 metrics = "0.23"
 metrics-exporter-prometheus = "0.15"
-sqlx = { version = "0.8", features = [ "runtime-tokio-native-tls", "sqlite", "uuid"] }
+openidconnect = "4"
+reqwest = "0.12"
+sqlx = { version = "0.8", features = [ "runtime-tokio-native-tls", "sqlite", "uuid", "chrono"] }
+serde = "1.0"
 tokio = { version = "1", features = [ "full", "tracing"] }
+time = "0.3"
 tracing = "0.1"
 tracing-subscriber = "0.3"
+url = "2.5"
 uuid = { version = "1", features = ["v4"] }
 
 [dev-dependencies]

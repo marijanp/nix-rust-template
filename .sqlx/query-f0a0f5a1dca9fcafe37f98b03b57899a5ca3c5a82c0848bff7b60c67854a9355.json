@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "select nonce from authentication_sessions where csrf_token = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "nonce",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f0a0f5a1dca9fcafe37f98b03b57899a5ca3c5a82c0848bff7b60c67854a9355"
+}

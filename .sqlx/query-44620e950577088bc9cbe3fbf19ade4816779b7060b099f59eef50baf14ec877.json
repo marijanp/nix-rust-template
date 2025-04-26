@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "insert into authentication_sessions (csrf_token, nonce) values ($1, $2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "44620e950577088bc9cbe3fbf19ade4816779b7060b099f59eef50baf14ec877"
+}

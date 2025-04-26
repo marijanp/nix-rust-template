@@ -3,6 +3,8 @@ pub mod cli;
 pub mod db;
 pub mod item;
 pub mod routes;
+pub mod ui;
+pub mod user_session;
 
 use crate::app_state::{AppConfig, AppState};
 use crate::cli::CliArgs;
@@ -15,6 +17,10 @@ use axum::{
 };
 use axum_extra::routing::RouterExt;
 use metrics_exporter_prometheus::{Matcher, PrometheusBuilder, PrometheusHandle};
+use openidconnect::{
+    core::{CoreClient, CoreProviderMetadata},
+    ClientId, ClientSecret, IssuerUrl, RedirectUrl,
+};
 use sqlx::SqlitePool;
 use std::future;
 use std::sync::Arc;
@@ -34,16 +40,44 @@ pub async fn run(
     CliArgs {
         listen_address,
         metrics_listen_address,
+        host_url,
         database_url,
+        openid_provider_url,
+        openid_client_id,
+        openid_client_secret,
     }: CliArgs,
 ) -> anyhow::Result<()> {
     init_tracing();
+
+    let http_client = reqwest::ClientBuilder::new()
+        // Following redirects opens the client up to SSRF vulnerabilities.
+        .redirect(reqwest::redirect::Policy::none())
+        .build()?;
+
+    let provider_metadata = CoreProviderMetadata::discover_async(
+        IssuerUrl::from_url(openid_provider_url),
+        &http_client,
+    )
+    .await?;
+
+    let redirect_url = host_url.join(&routes::OAuthCallbackPath.to_string())?;
+    let client = CoreClient::from_provider_metadata(
+        provider_metadata,
+        ClientId::new(openid_client_id),
+        Some(ClientSecret::new(openid_client_secret)),
+    )
+    // Set the URL the user will be redirected to after the authorization process.
+    .set_redirect_uri(RedirectUrl::from_url(redirect_url));
 
     let app_state = Arc::new(AppConfig {
         db_pool: SqlitePool::connect(&database_url)
             .await
             .map_err(Into::<anyhow::Error>::into)?,
+        http_client,
+        openid_client: client,
+        host_url,
     });
+
     let app = app(app_state);
 
     let tcp_listener = TcpListener::bind(listen_address).await?;
@@ -53,9 +87,8 @@ pub async fn run(
         None => axum::serve(tcp_listener, app).await.map_err(Into::into),
         Some(metrics_listen_address) => {
             let metrics_app = metrics_app();
-            let metrics_tcp_listener = tokio::net::TcpListener::bind(metrics_listen_address)
-                .await
-                .unwrap();
+            let metrics_tcp_listener =
+                tokio::net::TcpListener::bind(metrics_listen_address).await?;
             tracing::info!("Metrics server is listening on {metrics_listen_address}");
 
             // Note that this does not spawn two top-level tasks, thus this will run
@@ -77,6 +110,10 @@ pub fn app(app_state: AppState) -> Router {
     Router::new()
         .typed_get(routes::get_items_handler)
         .typed_post(routes::new_item_handler)
+        .typed_get(routes::get_status_handler)
+        .typed_get(routes::get_login_handler)
+        .typed_get(routes::get_logout_handler)
+        .typed_get(routes::oauth_callback_handler)
         .route_layer(middleware::from_fn(track_metrics))
         .with_state(app_state)
 }

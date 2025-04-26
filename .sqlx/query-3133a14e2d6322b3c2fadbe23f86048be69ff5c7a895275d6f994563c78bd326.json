@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        select\n            id as \"id!: String\",\n            id_token as \"id_token!: String\",\n            nonce as \"nonce!: String\",\n            expires_at as \"expires_at!: String\"\n        from user_sessions\n        where id = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "id_token!: String",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "nonce!: String",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "expires_at!: String",
+        "ordinal": 3,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "3133a14e2d6322b3c2fadbe23f86048be69ff5c7a895275d6f994563c78bd326"
+}

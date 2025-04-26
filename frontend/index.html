@@ -4,13 +4,21 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/style.css">
-    <script src="https://unpkg.com/htmx.org@2.0.2" integrity="sha384-Y7hw+L/jvKeWIRRkqWYfPcvVxHzVzn5REgzbawhxAuQGwX1XWe70vji+VSeHOThJ" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
     <title>Demo</title>
   </head>
   <body>
+    <div id="error-container" class="error-message"></div>
+
+    <div id="auth-status" hx-get="/auth/status" hx-swap="innerHTML" hx-trigger="load">
+        <span>Loading...</span>
+    </div>
+
     <button hx-post="/api/v1/items/new" hx-swap="none">New</button>
+
     <div hx-get="/api/v1/items" hx-trigger="load, newItem from:body">
     </div>
+
     <noscript>
       <p lang="en">
         This website requires JavaScript. Here are the

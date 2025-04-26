@@ -1,3 +1,6 @@
+pub mod authentication;
+pub use authentication::*;
+
 use askama::Template;
 use axum::extract::State;
 use axum::http::StatusCode;
@@ -35,7 +38,7 @@ pub async fn new_item_handler(_: NewItemPath, state: State<AppState>) -> Respons
     match db::new_item(&state.db_pool, "test", 100).await {
         Ok(_) => AppendHeaders([("HX-Trigger", "newItem")]).into_response(),
         Err(err) => {
-            tracing::error!("Failed to create new item:: {err}");
+            tracing::error!("Failed to create new item: {err}");
             (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response()
         }
     }

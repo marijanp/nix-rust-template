@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "delete from authentication_sessions where csrf_token = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "1e7b44c62715c00c00708b00a1d698cd16a4b81f2da28f1c07d97b8c0403dc37"
+}

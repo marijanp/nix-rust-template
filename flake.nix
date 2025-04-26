@@ -82,42 +82,67 @@
           };
         in
         {
-          devShells.default = pkgs.mkShell {
-            inputsFrom = [ self'.packages.default ];
-            packages = [ pkgs.sqlx-cli ];
-            DATABASE_URL = "sqlite:items.db";
-          };
+          devShells.default =
+            let
+              DATABASE_FILE = "dev-database.db";
+            in
+            pkgs.mkShell {
+              inputsFrom = [ self'.packages.default ];
+              packages = [
+                pkgs.sqlx-cli
+                pkgs.sqlite
+                self'.packages.run-migrations
+              ];
+              inherit DATABASE_FILE;
+              DATABASE_URL = "sqlite:${DATABASE_FILE}";
+            };
 
           packages = {
             run-stack = pkgs.writeShellApplication {
               name = "run-stack";
               runtimeInputs = [
-                pkgs.tinyproxy
+                pkgs.caddy
                 pkgs.simple-http-server
                 self'.packages.run-migrations
               ];
               text =
                 let
-                  proxyConfig = pkgs.writeTextFile {
-                    name = "proxy.conf";
+                  caddyConfig = pkgs.writeTextFile {
+                    name = "Caddyfile";
                     text = ''
-                      ReversePath "/"	"http://0.0.0.0:8001/"
-                      ReversePath "/api/"	"http://0.0.0.0:8002/api/"
-                      ReverseOnly Yes
-                      Port 8000
-                      ReverseBaseURL "http://0.0.0.0:8000/"
+                      :8000 {
+                        reverse_proxy /api/* http://0.0.0.0:8002
+                        reverse_proxy /auth/* http://0.0.0.0:8002
+                        reverse_proxy /* http://0.0.0.0:8001
+                      }
                     '';
                   };
                 in
                 ''
-                  database_file=$(mktemp database.XXXX)
-                  run-migrations server/migrations "$database_file"
+                  set -euo pipefail
+
+                  # Create database file if it does NOT exist
+                  if [ ! -f "$DATABASE_FILE" ]; then
+                      DATABASE_FILE=$(touch "$DATABASE_FILE")
+                      echo "Created new database file: $DATABASE_FILE"
+                  fi
+
+                  run-migrations server/migrations "$DATABASE_FILE"
+
 
                   simple-http-server --index --port 8001 frontend &
                   PID_FRONTEND=$!
-                  cargo run -- --listen-address 0.0.0.0:8002 --database-url "sqlite://$database_file" &
+
+                  cargo run -- --listen-address 0.0.0.0:8002 \
+                               --host-url http://localhost:8000 \
+                               --database-url "sqlite://$DATABASE_FILE" \
+                               --openid-provider-url https://marijan.eu.auth0.com/ \
+                               --openid-client-id "$OPENID_CLIENT_ID" \
+                               --openid-client-secret "$OPENID_CLIENT_SECRET" \
+                               &
                   PID_BACKEND=$!
-                  tinyproxy -d -c ${proxyConfig} &
+
+                  caddy run --config ${caddyConfig} --adapter caddyfile &
                   PID_PROXY=$!
 
                   cleanup() {
@@ -129,7 +154,6 @@
                   trap cleanup SIGINT
 
                   wait $PID_FRONTEND $PID_BACKEND $PID_PROXY
-                  rm -rf "$database_file"
                 '';
             };
 
