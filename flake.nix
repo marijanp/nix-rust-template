@@ -13,135 +13,87 @@
   };
 
   inputs = {
-    flake-parts.url = "github:hercules-ci/flake-parts";
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     treefmt-nix.url = "github:numtide/treefmt-nix";
-    treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
+    treefmt-nix.flake = false;
     fenix.url = "github:nix-community/fenix";
-    fenix.inputs.nixpkgs.follows = "nixpkgs";
+    fenix.flake = false;
     crane.url = "github:ipetkov/crane";
-    advisory-db.url = "github:rustsec/advisory-db";
-    advisory-db.flake = false;
+    crane.flake = false;
   };
 
   outputs =
-    inputs@{
+    {
       self,
-      flake-parts,
+      nixpkgs,
       treefmt-nix,
+      fenix,
+      crane,
       ...
     }:
-    flake-parts.lib.mkFlake { inherit inputs; } {
-      systems = [
+    let
+      # there is also nixpkgs.lib.systems.flakeExposed
+      allSystems = [
         "x86_64-linux"
         "aarch64-linux"
         "x86_64-darwin"
         "aarch64-darwin"
       ];
-      imports = [
-        treefmt-nix.flakeModule
-        ./nixos
-      ];
-      perSystem =
-        {
-          self',
-          inputs',
-          pkgs,
-          lib,
-          ...
-        }:
-        let
-          rustToolchain = inputs'.fenix.packages.stable.toolchain;
-          craneLib = (inputs.crane.mkLib pkgs).overrideToolchain rustToolchain;
-
-          commonAttrs = {
-            pname = "server";
-
-            src = lib.fileset.toSource {
-              root = ./.;
-              fileset = lib.fileset.unions [
-                ./Cargo.toml
-                ./Cargo.lock
-                ./server
+      withPkgs =
+        pkgsCallback:
+        nixpkgs.lib.genAttrs allSystems (
+          system:
+          let
+            pkgs = import nixpkgs {
+              inherit system;
+              overlays = [
+                (import "${fenix}/overlay.nix")
+                (final: prev: {
+                  craneLib = (import crane { pkgs = final; }).overrideToolchain final.fenix.stable.toolchain;
+                  mkWrapper = (import treefmt-nix).mkWrapper final;
+                })
+                (import ./nix/overlays/default.nix)
+                (import ./nix/overlays/dev.nix)
               ];
             };
+          in
+          pkgsCallback { inherit pkgs system; }
+        );
+    in
+    {
 
-            nativeBuildInputs = [ pkgs.pkg-config ];
-            buildInputs =
-              with pkgs;
-              [
-                openssl.dev
-              ]
-              ++ lib.optionals stdenv.isDarwin [
-                libiconv
-              ];
-
-            # the coverage report will run the tests
-            doCheck = false;
-          };
-        in
+      devShells = withPkgs (
+        { pkgs, ... }:
         {
-          devShells.default = pkgs.mkShell {
-            inputsFrom = [ self'.packages.default ];
-          };
+          default = pkgs.devShell;
+        }
+      );
 
-          packages = {
-            server-deps = craneLib.buildDepsOnly commonAttrs;
-
-            server-docs = craneLib.cargoDoc (
-              commonAttrs
-              // {
-                cargoArtifacts = self'.packages.server-deps;
-              }
-            );
-
-            server = craneLib.buildPackage (
-              commonAttrs
-              // {
-                cargoArtifacts = self'.packages.server-deps;
-                meta.mainProgram = "server";
-              }
-            );
-
-            default = self'.packages.server;
-          };
-
-          checks = {
-            inherit (self'.packages) server-docs server;
-
-            lint = craneLib.cargoClippy (
-              commonAttrs
-              // {
-                cargoArtifacts = self'.packages.server-deps;
-                cargoClippyExtraArgs = "--all-targets -- --deny warnings";
-              }
-            );
-
-            coverage-report = craneLib.cargoTarpaulin (
-              commonAttrs
-              // {
-                cargoArtifacts = self'.packages.server-deps;
-              }
-            );
-          };
-
-          treefmt = {
-            projectRootFile = ".git/config";
-            programs.nixfmt.enable = true;
-            programs.rustfmt.enable = true;
-            programs.rustfmt.package = craneLib.rustfmt;
-            settings.formatter = { };
-          };
-        };
-      flake =
-        let
-          system = "x86_64-linux";
-          pkgs = inputs.nixpkgs.legacyPackages.${system};
-        in
+      packages = withPkgs (
+        { pkgs, system }:
         {
-          packages.${system}.server-docker-image = pkgs.callPackage ./docker-image.nix {
-            inherit (self.packages.${system}) server;
-          };
-        };
+          inherit (pkgs)
+            server
+            server-docs
+            lint
+            coverage-report
+            server-docker-image
+            ;
+          server-deps = pkgs.cargoArtifacts;
+          default = self.packages.${system}.server;
+        }
+      );
+
+      checks = withPkgs (
+        { pkgs, ... }:
+        {
+          inherit (pkgs)
+            server
+            server-docs
+            lint
+            coverage-report
+            ;
+        }
+      );
     };
 }
