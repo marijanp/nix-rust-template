@@ -6,6 +6,7 @@
   libiconv,
   craneLibBuild,
   cargoArtifacts,
+  lld
 }:
 craneLibBuild {
   pname = "server";
@@ -21,7 +22,11 @@ craneLibBuild {
 
   inherit cargoArtifacts;
 
-  nativeBuildInputs = [ pkg-config ];
+  env = lib.optionalAttrs stdenv.isLinux {
+    RUSTFLAGS = "-C link-self-contained=-linker";
+  };
+
+  nativeBuildInputs = [ pkg-config lld ];
   buildInputs =
     [
       openssl.dev
