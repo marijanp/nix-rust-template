@@ -61,6 +61,10 @@
         );
     in
     {
+      overlays = {
+        default = import ./nix/overlays/default.nix;
+        devShell = import ./nix/overlays/dev.nix;
+      };
 
       devShells = withPkgs (
         { pkgs, ... }:
