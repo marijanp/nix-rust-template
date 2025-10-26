@@ -1,6 +1,6 @@
 use server::{cli::CliArgs, routes::GetItemsPath};
 
-use backoff::{future::retry, ExponentialBackoff};
+use backoff::{ExponentialBackoff, future::retry};
 use std::net::SocketAddr;
 use tokio::io;
 use tokio::net::TcpStream;

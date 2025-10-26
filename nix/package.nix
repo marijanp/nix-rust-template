@@ -6,7 +6,7 @@
   libiconv,
   craneLibBuild,
   cargoArtifacts,
-  lld
+  lld,
 }:
 craneLibBuild {
   pname = "server";
@@ -26,14 +26,16 @@ craneLibBuild {
     RUSTFLAGS = "-C link-self-contained=-linker";
   };
 
-  nativeBuildInputs = [ pkg-config lld ];
-  buildInputs =
-    [
-      openssl.dev
-    ]
-    ++ lib.optionals stdenv.isDarwin [
-      libiconv
-    ];
+  nativeBuildInputs = [
+    pkg-config
+    lld
+  ];
+  buildInputs = [
+    openssl.dev
+  ]
+  ++ lib.optionals stdenv.isDarwin [
+    libiconv
+  ];
 
   # the coverage report will run the tests
   doCheck = false;
