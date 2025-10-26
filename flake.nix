@@ -66,6 +66,8 @@
         devShell = import ./nix/overlays/dev.nix;
       };
 
+      formatter = withPkgs ({ pkgs, ... }: pkgs.treefmt-formatter);
+
       devShells = withPkgs (
         { pkgs, ... }:
         {
