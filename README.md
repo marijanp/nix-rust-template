@@ -9,7 +9,6 @@ A Rust project template packaged with Nix.
     - tokio
     - tracing
 - Nix
-    - [flake-parts](https://flake.parts/)
     - [crane](https://crane.dev/)
     - [fenix](https://github.com/nix-community/fenix)
 
