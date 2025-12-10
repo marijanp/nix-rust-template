@@ -22,7 +22,7 @@ let
       (import "${fenixSrc}/overlay.nix")
       (final: prev: {
         craneLib = (import craneSrc { pkgs = final; }).overrideToolchain final.fenix.stable.toolchain;
-        mkWrapper = (import treefmt-nix).mkWrapper final;
+        treefmt-nix = import treefmt-nix;
       })
       (import ./nix/overlays/default.nix)
       (import ./nix/overlays/dev.nix)
@@ -35,6 +35,7 @@ in
     server-docs
     lint
     coverage-report
+    formatting-check
     server-docker-image
     devShell
     ;

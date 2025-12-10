@@ -50,7 +50,7 @@
                 (import "${fenix}/overlay.nix")
                 (final: prev: {
                   craneLib = (import crane { pkgs = final; }).overrideToolchain final.fenix.stable.toolchain;
-                  mkWrapper = (import treefmt-nix).mkWrapper final;
+                  treefmt-nix = import treefmt-nix;
                 })
                 (import ./nix/overlays/default.nix)
                 (import ./nix/overlays/dev.nix)
@@ -98,6 +98,7 @@
             server-docs
             lint
             coverage-report
+            formatting-check
             ;
         }
       );
